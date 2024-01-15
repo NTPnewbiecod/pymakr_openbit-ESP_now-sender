@@ -5,21 +5,36 @@ from neo_pix_matrix_openBit import *
 import random
 import time
 from performance_timer import *
+ 
+led_matrix_MAIN = led_matrix_MAIN()
 
-led_matrix = led_matrix()
-
-
+# 1F1F1F
 def led_test():
-    led_matrix.led_matrix_fill((random.randint(16,255),random.randint(16,255),random.randint(16,255)))
-    led_matrix.led_matrix_active()
+  led_matrix_MAIN.led_matrix_fill(led_matrix_MAIN.hex_color("000000"))
+  led_matrix_MAIN.led_matrix_active()
 
 
 
 def main():
-    for _ in range(500):
-        led_test()
-    
-    
-    
-    
-pef_timer(main()) 
+  led_test()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+if __name__ == "main":
+  pef_timer(main)
