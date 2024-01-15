@@ -48,3 +48,5 @@ class led_matrix_MAIN():
             color (tuple): tuple that contain RGB (int between 0 to 255) eg. (255, 255, 255)
         """
         self.neopixel_matrix.fill(color)
+  
+  # def 
