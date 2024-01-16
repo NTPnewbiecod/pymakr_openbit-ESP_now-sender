@@ -24,7 +24,6 @@ class ESPN ():
     
     #network driver setup
     self._net_wlan = network.WLAN(network.STA_IF)  # Or network.AP_IF | I don't know?
-    # self._net_wlan.__init__() #just in case
     self._net_wlan.active(True)
     self._net_wlan.disconnect()
 
@@ -34,77 +33,104 @@ class ESPN ():
     self._EspNow.active(True)
 
     #default value
-    self.sender_address :bytes = b'\x00' * 6
-    self.recv_msg :bytes= "default_msg".encode("utf-8")
-    self.addPeer('ff:ff:ff:ff:ff:ff') 
+    self._sender_address :bytes = b'\x00' * 6
+    self._recv_msg :bytes= "default_msg".encode("utf-8")
     
   
   def _DEBUG_peer_count(self) -> None:
     peer_count_and_encrypt = self._EspNow.peer_count()
     print(f'total peer {peer_count_and_encrypt[0]}\nencrypt peer: {peer_count_and_encrypt[1]}')
 
-  def _get_peer_count(self) -> int:
+  def _get_peer_count(self) -> tuple:
+    """Return the number of registered peers:
+
+    Returns:
+        tuple:(peer_num, encrypt_num): where peer_num is the number of peers which are registered, 
+        and encrypt_num is the number of encrypted peers.
+    """
     peer_count_and_encrypt = self._EspNow.peer_count()
-    return peer_count_and_encrypt[0]
+    return peer_count_and_encrypt
 
+  def _get_peers(self) -> tuple:
+    """Return information on a registered peer
 
-  def addPeer(self, addr_in :str,lmk_key :bytes= b'', channel :int= 0,) -> None:
-    """Add/register the provided mac address as a peer. Additional parameters may also be specified as positional or keyword arguments (any parameter set to "None" will be set to it's default value
+    Returns:
+        tuple: tuple tuple with info on all registered peer
+    """
+    return self._EspNow.get_peers()
+  
+  def _print_peers_info(self):
+    """print information on all registered peer.
+    """
+    for i in  self._get_peers():
+      mac, lmk, channel, ifdix, is_encrypt = i
+      mac = ":".join("%02X" % i for i in mac)
+      # lmk = "".join( str(i) for i in lmk)
+      if ifdix == 0:
+        ifdix_name = "network.STA_IF"
+      else:
+        ifdix_name = "network.AP_IF"
+      print(f'mac:          {mac}')
+      print(f'LMK key:      {lmk}')
+      print(f'wifi channel: {channel}')
+      print(f'ifdix:        {ifdix_name}')
+      print(f'is_encrypt:   {is_encrypt}')
+  
+  
+  def addPeer(self, addr_in :str, channel :int= 0,) -> None:
+    """Add/register the provided mac address as a peer. 
 
     Args:
         ADDR (str): The MAC address of the peer (such as "FF:FF:FF:FF:FF:FF")
-        LMK_key (bytes, optional): The Local Master Key (LMK) key used to encrypt data transfers with this peer. a byte-string or bytearray or string of length espnow.KEY_LEN (16 bytes), or any non True python value, signifying an empty key which will disable encryption.  Defaults to b'0'.
-        Channel (int, optional): The wifi channel (2.4GHz) to communicate with this peer. Must be an integer from 0 to 14. If channel is set to 0 the current channel of the wifi device will be used. Defaults to 0.
+        Channel (int, optional): The wifi channel (2.4GHz) to communicate with this peer. 
+        Must be an integer from 0 to 14. 
+        If channel is set to 0 the current channel of the wifi device will be used. Defaults to 0.
 
-    Raises:
-        OSError: if too many peer is register
-    """
-    # if self._get_peer_count() == self._EspNow.MAX_TOTAL_PEER_NUM:
-    #   print(f'too many peer register\n{self._get_peer_count()} peer is already register')
-    #   raise OSError
-    # else:
-    #   pass
-   
     
+    """
     
     try:
-      self._EspNow.add_peer(raw_text_addr_to_bytes(addr_in), lmk_key, channel)
+      self._EspNow.add_peer(raw_text_addr_to_bytes(addr_in), b'', channel)
     except OSError as err:
-      # raise err
-      pass
+      if err.args[1] == "ESP_ERR_ESPNOW_FULL":
+        print("\n\n!!! too many peers are already registered. !!! \n\n")
+        raise err
+      else:
+        pass
 
-  def send(self, msg :str, MAC_of_recv="FF:FF:FF:FF:FF:FF") ->None:
-    """Send the data contained in "msg" to the peer with given network mac address. !!!The peer MUST be registered with ESPNow.add_peer() before the message can be sent.
+
+  def send(self, msg :str, MAC_of_recv:str= None) ->None:
+    """Send the data contained in "msg" to the peer with given network MAC address.
+    if MAC address is not provided. this function will send the "msg" to all MAC address that is already register.
+    !!!The peer MUST be registered with ESPNow.add_peer() before the message can be sent.
 
     Args:
         msg (str): string or byte-string up to espnow.MAX_DATA_LEN (250) bytes long.
-        MAC_of_recv (str, optional): The MAC address of the receiver (such as "FF:FF:FF:FF:FF:FF"). Defaults to "FF:FF:FF:FF:FF:FF".
+        MAC_of_recv (str, optional): The MAC address of the receiver (such as "FF:FF:FF:FF:FF:FF"). Defaults to None.
     """
-    try:
-      # self._EspNow.send(msg.encode("utf-8"), mac=raw_text_addr_to_bytes(MAC_of_recv))
-      self._EspNow.send(raw_text_addr_to_bytes(MAC_of_recv), bytearray(msg,'utf-8'))
-    except OSError as err:
-      print("Sending error !\nSomething goes wrong when sending msg")
-      raise err
+    if MAC_of_recv == None:
+      self._EspNow.send(bytearray(msg,'utf-8'))
+    else:
+      try:
+        # self._EspNow.send(msg.encode("utf-8"), mac=raw_text_addr_to_bytes(MAC_of_recv))
+        self._EspNow.send(raw_text_addr_to_bytes(MAC_of_recv), bytearray(msg,'utf-8'))
+      except OSError as err:
+        print("Sending error !\nSomething goes wrong when sending msg")
+        raise err
+    
   
   
-  def isReadyToRead(self) -> bool:
+  def _isReadyToRead(self) -> bool:
     """Check if data is available to be read with readAsText/readAsNumber method.
 
     Returns:
         bool:
     """
-    self.sender_address, self.recv_msg = self._EspNow.irecv(10)
-    try:
-      if self._EspNow.any():
-        return True
-      else:
-        return False
-    except:
-      if self.recv_msg:
-        return True
-      else:
-        return False
+    self._sender_address, self._recv_msg = self._EspNow.irecv(10)
+    if self._recv_msg:
+      return True
+    else:
+      return False
   
   def getSenderMAC(self) -> str:
     """Return the MAC address of the latest message.
@@ -112,19 +138,24 @@ class ESPN ():
     Returns:
         str: in the plain hex string. (such as "FF:FF:FF:FF:FF:FF")
     """
-    sender_address_text :str = ""    
-    sender_address_text :str = ":".join(format(i, "02X")  for i in self.sender_address)
+    sender_address_text :str = ""
+    sender_address_text :str = ":".join("%02X" % i for i in self._sender_address)
     return sender_address_text
 
   def readAsText(self) -> str:
-    return self.recv_msg.decode("utf-8") if self.recv_msg else ""
+    if self._isReadyToRead():
+      return self._recv_msg.decode("utf-8") if self._recv_msg else ""
+    else:
+      return None
   
   def readAsNumber(self) -> float:
-    if not self.recv_msg:
-      return 0
-    else:
-      try:
-        return float(self.recv_msg)
-      except ValueError:
-        pass
+    if self._isReadyToRead():
+      if not self._recv_msg:
         return 0
+      else:
+          return float(self._recv_msg)
+    else:
+      return None
+    
+  def getMyMAC(self):
+    return ":".join("%02X" % i for i in self._net_wlan.config('mac'))

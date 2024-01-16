@@ -6,7 +6,6 @@ import random
 import time
 from performance_timer import *
 import betterESPNOW
-import espnow
 
  
 led_matrix_MAIN = led_matrix_MAIN()
@@ -20,18 +19,20 @@ def testUnit():
   led_matrix_MAIN.led_matrix_fill(led_matrix_MAIN.hex_color("000000"))
   led_matrix_MAIN.led_matrix_active()
   time.sleep(2)
-  led_matrix_MAIN.led_matrix_fill(led_matrix_MAIN.hex_color("1F1F1F"))
+  led_matrix_MAIN.led_matrix_fill(led_matrix_MAIN.hex_color("001F1F"))
   led_matrix_MAIN.led_matrix_active()
+  print(espNow.getMyMAC()) # 10:97:BD:25:35:80
   
-  espNow.addPeer('ff:ff:ff:ff:ff:ff')
-  while True:
-    time.sleep(1)
-    espNow.send("hello", "ff:ff:ff:ff:ff:ff")
+  
+  espNow.addPeer('E8:31:CD:1E:BC:20', 2)
+  
+  
 
 
 def main():
   testUnit()
-
+  espNow._print_peers_info()
+    
 
 
 
