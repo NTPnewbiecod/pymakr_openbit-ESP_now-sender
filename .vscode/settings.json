@@ -2,5 +2,6 @@
   "cSpell.ignoreWords": ["neopixel"],
   "files.autoSave": "off",
   "editor.tabSize": 2,
-  "editor.bracketPairColorization.independentColorPoolPerBracketType": true
+  "editor.bracketPairColorization.independentColorPoolPerBracketType": true,
+  "cSpell.words": ["ESPNOW"]
 }
